@@ -1,10 +1,6 @@
 -- shop
 
--- add data
--- check performance with indexes for app_accounts
--- add roles
-
--- DOMAINS
+-- INIT
 
 CREATE DOMAIN phone_number_domain AS VARCHAR(15) CHECK(
     VALUE ~ '^(\+\d{2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{3}$'
@@ -80,7 +76,7 @@ $$
     BEGIN
     UPDATE units SET amount = amount - New.amount
     WHERE unit_id = NEW.unit_id;
-    REFRESH MATERIALIZED VIEW all_reserved_units_with_user_id;
+    CALL refresh_all_reserved_units_with_user_id();
     RAISE NOTICE 'Units amount subtracted!';
     RETURN NULL;
     END;
@@ -94,7 +90,7 @@ $$
     BEGIN
     UPDATE units SET amount = amount + (OLD.amount - NEW.amount)
     WHERE unit_id = OLD.unit_id;
-    REFRESH MATERIALIZED VIEW all_reserved_units_with_user_id;
+    CALL refresh_all_reserved_units_with_user_id();
     RAISE NOTICE 'Units amount updated!';
     RETURN NULL;
     END;
@@ -108,7 +104,7 @@ $$
     BEGIN
     UPDATE units SET amount = amount + OLD.amount
     WHERE unit_id = OLD.unit_id;
-    REFRESH MATERIALIZED VIEW all_reserved_units_with_user_id;
+    CALL refresh_all_reserved_units_with_user_id();
     RAISE NOTICE 'Units amount added!';
     RETURN NULL;
     END;
@@ -124,8 +120,8 @@ $total_amount$
     BEGIN
 
     SELECT COALESCE(sum(total), 0)::decimal INTO total_amount
-    FROM all_reserved_units_with_user_id
-    WHERE all_reserved_units_with_user_id.user_id = sender_id;
+    FROM all_reserved_total
+    WHERE all_reserved_total.user_id = sender_id;
 
     RETURN total_amount;
     END;
@@ -161,6 +157,32 @@ CREATE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted
 
 
 -- PROCEDURES
+CREATE OR REPLACE PROCEDURE refresh_all_reserved_units_with_user_id()
+LANGUAGE PLPGSQL
+AS
+$$
+    -- run with priveligies of the user that defines the procedure
+    BEGIN
+        REFRESH MATERIALIZED VIEW all_reserved_units_with_user_id;
+    END;
+$$ SECURITY DEFINER;
+
+CREATE OR REPLACE PROCEDURE delete_without_trigger(sender_id int)
+LANGUAGE PLPGSQL
+AS
+$$
+    -- run with priveligies of the user that defines the procedure
+    BEGIN
+    ALTER TABLE reserved_units
+    DISABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
+
+    DELETE FROM reserved_units WHERE user_id = sender_id;
+    CALL refresh_all_reserved_units_with_user_id();
+
+    ALTER TABLE reserved_units
+    ENABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
+    END;
+$$ SECURITY DEFINER;
 
 CREATE OR REPLACE PROCEDURE buy(sender_id int)
 LANGUAGE PLPGSQL
@@ -170,19 +192,13 @@ $$
     UPDATE app_accounts
     SET amount = amount - (
         SELECT COALESCE(sum(total), 0)::decimal
-        FROM all_reserved_units_with_user_id
-        WHERE all_reserved_units_with_user_id.user_id = sender_id
+        FROM all_reserved_total
+        WHERE all_reserved_total.user_id = sender_id
     )
     WHERE app_accounts.user_id = sender_id;
 
-    ALTER TABLE reserved_units
-    DISABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
+    CALL delete_without_trigger(sender_id);
 
-    DELETE FROM reserved_units WHERE user_id = sender_id;
-    REFRESH MATERIALIZED VIEW all_reserved_units_with_user_id;
-
-    ALTER TABLE reserved_units
-    ENABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
     RAISE NOTICE 'Reserved units bought!';
     COMMIT;
     END;
@@ -208,7 +224,61 @@ $$
     BEGIN
     INSERT INTO reserved_units (user_id, unit_id, amount)
     VALUES (sender_id, unit_to_reserve_id, quantity);
+    CALL refresh_all_reserved_units_with_user_id();
     RAISE NOTICE 'Unit reserved!';
+    COMMIT;
+    END;
+$$;
+
+CREATE OR REPLACE PROCEDURE update_unit_for_user(
+    sender_id int, unit_to_reserve_id int, quantity int
+)
+LANGUAGE PLPGSQL
+AS
+$$
+    BEGIN
+    UPDATE reserved_units SET amount = quantity
+    WHERE user_id = sender_id AND unit_id = unit_to_reserve_id;
+    RAISE NOTICE 'Unit reserved!';
+    COMMIT;
+    END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE create_admin_user(
+    username varchar, email varchar
+)
+LANGUAGE PLPGSQL
+AS
+$$
+    BEGIN
+    INSERT INTO users(username, email)
+    VALUES (username, email);
+
+    EXECUTE FORMAT('DROP USER IF EXISTS %s', username, username);
+    EXECUTE FORMAT('CREATE USER %s', username);
+    EXECUTE FORMAT('GRANT shop_admin TO %s', username);
+
+    RAISE NOTICE 'Admin user created!';
+    COMMIT;
+    END;
+$$;
+
+CREATE OR REPLACE PROCEDURE create_customer_user(
+    username varchar, email varchar
+)
+LANGUAGE PLPGSQL
+AS
+$$
+    BEGIN
+    INSERT INTO users(username, email)
+    VALUES (username, email);
+
+    EXECUTE FORMAT('DROP USER IF EXISTS %s', username, username);
+    EXECUTE FORMAT('CREATE USER %s', username);
+    EXECUTE FORMAT('GRANT shop_customer TO %s', username);
+
+    RAISE NOTICE 'Customer user created!';
     COMMIT;
     END;
 $$;
@@ -259,102 +329,9 @@ CREATE VIEW all_reserved_units AS
 SELECT username, shop_name, name, weight, price, price_for_kg, amount, total
 FROM all_reserved_units_with_user_id;
 
-
--- POPULATE
-
-INSERT INTO users(username, email)
-VALUES
-    ('admin', 'admin@mail.com'),
-    ('atkins', 'atkins@mail.com'),
-    ('whoami', 'whoami@mail.com');
-
-INSERT INTO shops(name)
-VALUES ('Lidl'), ('Carefour'), ('Zabka');
-
-INSERT INTO units (shop_id, name, weight, amount, price)
-VALUES
-    (1, 'Rice', 1.0, 2, 1.5),
-    (1, 'Beef', 1.0, 2, 3),
-    (2, 'Eggs', 0.7, 3, 2.5),
-    (3, 'Tea', 0.1, 1, 4);
-
-
--- EXAMPLE
-
--- ALTER SEQUENCE reserved_units_reserved_unit_id_seq RESTART WITH 1;
-
-CALL populate_account_for_user(1, 10);
-CALL populate_account_for_user(2, 10);
-CALL populate_account_for_user(3, 10);
-
-CALL reserve_unit_for_user(1,1,2);
-CALL reserve_unit_for_user(1,2,1);
-CALL reserve_unit_for_user(2,3,1);
-CALL reserve_unit_for_user(3,4,1);
-
--- clear for user with id 2
-CALL clear(2);
--- buy for user with id 3
-CALL buy(3);
-
-TABLE all_shops;
-TABLE all_units;
-TABLE all_reserved_units;
-TABLE all_users;
-
--- ASSERTS
-
-DO
-$$
-DECLARE
-    rice_amount int;
-    beef_amount int;
-    eggs_amount int;
-    tea_amount int;
-    total_reserved_amount int;
-    admin_to_pay_amount decimal;
-    atkins_to_pay_amount decimal;
-    whoami_to_pay_amount decimal;
-    admin_account_amount decimal;
-    atkins_account_amount decimal;
-    whoami_account_amount decimal;
-BEGIN
-    SELECT amount INTO rice_amount FROM units WHERE unit_id = 1;
-    SELECT amount INTO beef_amount FROM units WHERE unit_id = 2;
-    SELECT amount INTO eggs_amount FROM units WHERE unit_id = 3;
-    SELECT amount INTO tea_amount FROM units WHERE unit_id = 4;
-
-    SELECT count(*) INTO total_reserved_amount FROM reserved_units;
-
-    SELECT to_pay_for_user(1) INTO admin_to_pay_amount;
-    SELECT to_pay_for_user(2) INTO atkins_to_pay_amount;
-    SELECT to_pay_for_user(3) INTO whoami_to_pay_amount;
-
-    SELECT amount INTO admin_account_amount
-    FROM app_accounts WHERE app_accounts.user_id = 1;
-
-    SELECT amount INTO atkins_account_amount
-    FROM app_accounts WHERE app_accounts.user_id = 2;
-
-    SELECT amount INTO whoami_account_amount
-    FROM app_accounts WHERE app_accounts.user_id = 3;
-
-    ASSERT rice_amount = 0, 'Wrong rice amount';
-    ASSERT beef_amount = 1, 'Wrong beef amount';
-    ASSERT eggs_amount = 3, 'Wrong eggs amount';
-    ASSERT tea_amount = 0, 'Wrong tea amount';
-
-    ASSERT total_reserved_amount = 2, 'Wrong reserved amount';
-
-    ASSERT admin_to_pay_amount = 6.00, 'Wrong admin to pay amount';
-    ASSERT atkins_to_pay_amount = 0.00, 'Wrong atkins to pay amount';
-    ASSERT whoami_to_pay_amount = 0.00, 'Wrong whoami to pay amount';
-
-    ASSERT admin_account_amount = 10.00, 'Wrong admin account amount';
-    ASSERT atkins_account_amount = 10.00, 'Wrong atkins account amount';
-    ASSERT whoami_account_amount = 6.00, 'Wrong whoami account amount';
-
-END
-$$;
+CREATE VIEW all_reserved_total AS
+SELECT user_id, (units.price * reserved_units.amount) as total
+FROM reserved_units
+INNER JOIN units ON units.unit_id = reserved_units.unit_id;
 
 
