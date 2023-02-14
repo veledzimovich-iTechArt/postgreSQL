@@ -1,6 +1,7 @@
 -- shop
 
 -- INIT
+CREATE EXTENSION tablefunc;
 
 CREATE DOMAIN phone_number_domain AS VARCHAR(15) CHECK(
     VALUE ~ '^(\+\d{2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{3}$'
@@ -80,7 +81,7 @@ $$
     RAISE NOTICE 'Units amount subtracted!';
     RETURN NULL;
     END;
-$$;
+$$ SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION update_unit_amount()
 RETURNS trigger
@@ -94,7 +95,7 @@ $$
     RAISE NOTICE 'Units amount updated!';
     RETURN NULL;
     END;
-$$;
+$$ SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION add_unit_amount()
 RETURNS trigger
@@ -108,7 +109,7 @@ $$
     RAISE NOTICE 'Units amount added!';
     RETURN NULL;
     END;
-$$;
+$$ SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION to_pay_for_user(sender_id int)
 RETURNS decimal
@@ -120,8 +121,13 @@ $total_amount$
     BEGIN
 
     SELECT COALESCE(sum(total), 0)::decimal INTO total_amount
-    FROM all_reserved_total
-    WHERE all_reserved_total.user_id = sender_id;
+    FROM (
+        SELECT user_id, (units.price * reserved_units.amount) as total
+        FROM reserved_units
+        INNER JOIN units ON units.unit_id = reserved_units.unit_id
+        WHERE user_id = sender_id
+    ) as all_reserved_total;
+
 
     RETURN total_amount;
     END;
@@ -173,14 +179,14 @@ AS
 $$
     -- run with priveligies of the user that defines the procedure
     BEGIN
-    ALTER TABLE reserved_units
-    DISABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
+        ALTER TABLE reserved_units
+        DISABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
 
-    DELETE FROM reserved_units WHERE user_id = sender_id;
-    CALL refresh_all_reserved_units_with_user_id();
+        DELETE FROM reserved_units WHERE user_id = sender_id;
+        CALL refresh_all_reserved_units_with_user_id();
 
-    ALTER TABLE reserved_units
-    ENABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
+        ALTER TABLE reserved_units
+        ENABLE TRIGGER unit_amount_updated_after_reserved_unit_has_been_deleted;
     END;
 $$ SECURITY DEFINER;
 
@@ -188,21 +194,25 @@ CREATE OR REPLACE PROCEDURE buy(sender_id int)
 LANGUAGE PLPGSQL
 AS
 $$
+
+    DECLARE
+        total_amount decimal;
     BEGIN
-    UPDATE app_accounts
-    SET amount = amount - (
-        SELECT COALESCE(sum(total), 0)::decimal
-        FROM all_reserved_total
-        WHERE all_reserved_total.user_id = sender_id
-    )
+    SELECT amount INTO total_amount FROM app_accounts
     WHERE app_accounts.user_id = sender_id;
+
+    SELECT (total_amount - (SELECT to_pay_for_user(sender_id)))
+    INTO total_amount;
+
+    CALL populate_account_for_user(
+        sender_id, total_amount
+    );
 
     CALL delete_without_trigger(sender_id);
 
     RAISE NOTICE 'Reserved units bought!';
-    COMMIT;
     END;
-$$;
+$$ SECURITY DEFINER;
 
 CREATE OR REPLACE PROCEDURE clear(sender_id int)
 LANGUAGE PLPGSQL
@@ -240,6 +250,20 @@ $$
     UPDATE reserved_units SET amount = quantity
     WHERE user_id = sender_id AND unit_id = unit_to_reserve_id;
     RAISE NOTICE 'Unit reserved!';
+    COMMIT;
+    END;
+$$;
+
+CREATE OR REPLACE PROCEDURE delete_unit_for_user(
+    sender_id int, unit_to_delete_id int
+)
+LANGUAGE PLPGSQL
+AS
+$$
+    BEGIN
+    DELETE FROM reserved_units
+    WHERE user_id = sender_id AND unit_id = unit_to_delete_id;
+    RAISE NOTICE 'Unit deleted!';
     COMMIT;
     END;
 $$;
@@ -284,7 +308,7 @@ $$
 $$;
 
 CREATE OR REPLACE PROCEDURE populate_account_for_user(
-    sender_id int, quantity int
+    sender_id int, quantity decimal
 )
 LANGUAGE PLPGSQL
 AS
@@ -293,7 +317,6 @@ $$
     UPDATE app_accounts SET amount = quantity
     WHERE user_id = sender_id;
     RAISE NOTICE 'Account populated!';
-    COMMIT;
     END;
 $$;
 
@@ -319,19 +342,22 @@ price, price_for_kg, amount
 FROM all_units_with_unit_id;
 
 CREATE MATERIALIZED VIEW all_reserved_units_with_user_id AS
-SELECT users.user_id, users.username, shops.name AS shop_name, units.name, units.weight, units.price, units.price_for_kg, reserved_units.amount,  (units.price * reserved_units.amount) as total FROM reserved_units
+SELECT users.user_id, users.username, shops.name AS shop_name, units.unit_id, units.name,  units.weight, units.price, units.price_for_kg, reserved_units.amount,  (units.price * reserved_units.amount) as total FROM reserved_units
 INNER JOIN units ON units.unit_id = reserved_units.unit_id
 INNER JOIN users ON users.user_id = reserved_units.user_id
 INNER JOIN shops ON shops.shop_id = units.shop_id
 ORDER BY reserved_units.reserved_unit_id;
 
 CREATE VIEW all_reserved_units AS
-SELECT username, shop_name, name, weight, price, price_for_kg, amount, total
+SELECT username, shop_name, unit_id, name, weight, price, price_for_kg, amount, total
 FROM all_reserved_units_with_user_id;
 
-CREATE VIEW all_reserved_total AS
-SELECT user_id, (units.price * reserved_units.amount) as total
-FROM reserved_units
-INNER JOIN units ON units.unit_id = reserved_units.unit_id;
 
-
+CREATE VIEW all_reserved_units_for_customer AS
+SELECT username, shop_name, unit_id, name, weight, price, price_for_kg, amount, total
+FROM all_reserved_units_with_user_id
+WHERE current_user = (
+    SELECT username
+    FROM users
+    WHERE user_id = all_reserved_units_with_user_id.user_id
+);

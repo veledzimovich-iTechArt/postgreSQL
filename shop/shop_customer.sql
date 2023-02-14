@@ -1,30 +1,44 @@
 -- shop
 
 -- CUSTOMER
+TABLE all_shops;
 TABLE all_units;
-TABLE all_reserved_units;
+TABLE all_reserved_units_for_customer;
+TABLE app_accounts;
+TABLE users;
 
+CALL reserve_unit_for_user(3,3,1);
 CALL reserve_unit_for_user(3,4,2);
 
 TABLE all_units;
-TABLE all_reserved_units;
+TABLE all_reserved_units_for_customer;
 
+-- didn't show for manager
+SELECT to_pay_for_user(1);
+-- showed for whoami
+SELECT to_pay_for_user(3);
+
+CALL delete_unit_for_user(3,3);
 CALL update_unit_for_user(3,4,1);
 
 TABLE all_units;
-TABLE all_reserved_units;
+TABLE all_reserved_units_for_customer;
 
 CALL buy(3);
 
 TABLE all_units;
-TABLE all_reserved_units;
-TABLE all_users;
+TABLE all_reserved_units_for_customer;
+TABLE app_accounts;
 
-CALL reserve_unit_for_user(2,3,2);
+CALL reserve_unit_for_user(1,3,1);
+CALL update_unit_for_user(1,2,2);
+CALL delete_unit_for_user(1,1);
+CALL delete_unit_for_user(1,2);
 
-TABLE all_units;
-TABLE all_reserved_units;
-TABLE all_users;
+UPDATE reserved_units SET amount = 0;
+DELETE FROM reserved_units;
+
+TABLE reserved_units;
 
 DO
 $$
@@ -50,3 +64,6 @@ BEGIN
     ASSERT whoami_account_amount = 2.00, 'Wrong whoami account amount';
 END
 $$;
+
+
+

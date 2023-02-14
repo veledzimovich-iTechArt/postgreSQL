@@ -79,9 +79,38 @@ BEGIN
 END
 $$;
 
-CALL clear(1);
 CALL clear(2);
 CALL clear(3);
 
 TABLE all_units;
 TABLE all_reserved_units;
+
+
+SELECT
+    available.name,
+    ordered.reserved_amount,
+    available.available_amount,
+    total_amount,
+    round(
+        available.available_amount/total_amount::numeric, 1
+    ) AS percent
+FROM
+    (
+        SELECT name, sum(amount) AS available_amount
+        FROM units
+        GROUP BY name
+    ) AS available
+JOIN (
+    SELECT units.name, sum(reserved_units.amount) AS reserved_amount
+    FROM reserved_units
+    JOIN units ON reserved_units.unit_id = units.unit_id
+    GROUP BY units.name
+) AS ordered
+ON available.name = ordered.name
+JOIN LATERAL (
+    SELECT ordered.reserved_amount + available.available_amount
+    AS total_amount
+) AS ta
+ON true
+
+ORDER BY percent DESC;

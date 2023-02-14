@@ -22,3 +22,37 @@ VALUES
 CALL populate_account_for_user(1, 10);
 CALL populate_account_for_user(2, 10);
 CALL populate_account_for_user(3, 10);
+
+
+
+WITH median(diff) AS (
+    SELECT percentile_cont(.5) WITHIN GROUP (ORDER BY price)
+    FROM units
+)
+
+SELECT
+    name,
+    price,
+    price - diff AS diff
+FROM units,
+    LATERAL (
+        SELECT diff FROM median
+    ) AS d
+WHERE (price - diff) BETWEEN -1 AND 1;
+
+
+SELECT * FROM crosstab (
+'SELECT shops.name, units.name, sum(units.amount) FROM units
+INNER JOIN shops ON units.shop_id = shops.shop_id
+GROUP BY shops.name, units.name
+ORDER BY shops.name',
+'SELECT name FROM units
+GROUP BY name
+ORDER BY name'
+) AS (
+    shop text,
+    rice bigint,
+    beef bigint,
+    tea bigint,
+    eggs bigint
+);
