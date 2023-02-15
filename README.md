@@ -14,9 +14,10 @@ Download postgres.app
 
 # shop
 
-Execute commands to create DB and run all examples
+Execute commands to create DB and run examples one by one
 
 ```bash
+dropdb shop_sql
 createdb -U postgres shop_sql
 # setup
 psql -U postgres -p 5432 -d shop_sql -f shop/shop_init.sql
@@ -25,5 +26,9 @@ psql -U postgres -p 5432 -d shop_sql -f shop/shop_populate.sql
 # execute
 psql -U shop_admin -p 5432 -d shop_sql -f shop/shop_admin.sql
 psql -U whoami -p 5432 -d shop_sql -f shop/shop_customer.sql
-dropdb shop_sql
+```
+
+Execute commands to check performance
+```bash
+./shop/indexes.sh
 ```

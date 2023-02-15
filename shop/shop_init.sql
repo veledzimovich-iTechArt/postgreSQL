@@ -1,6 +1,7 @@
 -- shop
 
 -- INIT
+
 CREATE EXTENSION tablefunc;
 
 CREATE DOMAIN phone_number_domain AS VARCHAR(15) CHECK(
@@ -78,7 +79,7 @@ $$
     UPDATE units SET amount = amount - New.amount
     WHERE unit_id = NEW.unit_id;
     CALL refresh_all_reserved_units_with_user_id();
-    RAISE NOTICE 'Units amount subtracted!';
+    -- RAISE NOTICE 'Units amount subtracted!';
     RETURN NULL;
     END;
 $$ SECURITY DEFINER;
@@ -92,7 +93,7 @@ $$
     UPDATE units SET amount = amount + (OLD.amount - NEW.amount)
     WHERE unit_id = OLD.unit_id;
     CALL refresh_all_reserved_units_with_user_id();
-    RAISE NOTICE 'Units amount updated!';
+    -- RAISE NOTICE 'Units amount updated!';
     RETURN NULL;
     END;
 $$ SECURITY DEFINER;
@@ -106,21 +107,20 @@ $$
     UPDATE units SET amount = amount + OLD.amount
     WHERE unit_id = OLD.unit_id;
     CALL refresh_all_reserved_units_with_user_id();
-    RAISE NOTICE 'Units amount added!';
+    -- RAISE NOTICE 'Units amount added!';
     RETURN NULL;
     END;
 $$ SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION to_pay_for_user(sender_id int)
-RETURNS decimal
+CREATE OR REPLACE FUNCTION to_pay_for_user(sender_id INT)
+RETURNS DECIMAL
 LANGUAGE PLPGSQL
 AS
 $total_amount$
-    DECLARE
-        total_amount decimal;
+    DECLARE total_amount DECIMAL;
     BEGIN
 
-    SELECT COALESCE(sum(total), 0)::decimal INTO total_amount
+    SELECT COALESCE(sum(total), 0)::DECIMAL INTO total_amount
     FROM (
         SELECT user_id, (units.price * reserved_units.amount) as total
         FROM reserved_units
@@ -173,7 +173,7 @@ $$
     END;
 $$ SECURITY DEFINER;
 
-CREATE OR REPLACE PROCEDURE delete_without_trigger(sender_id int)
+CREATE OR REPLACE PROCEDURE delete_without_trigger(sender_id INT)
 LANGUAGE PLPGSQL
 AS
 $$
@@ -190,13 +190,11 @@ $$
     END;
 $$ SECURITY DEFINER;
 
-CREATE OR REPLACE PROCEDURE buy(sender_id int)
+CREATE OR REPLACE PROCEDURE buy(sender_id INT)
 LANGUAGE PLPGSQL
 AS
 $$
-
-    DECLARE
-        total_amount decimal;
+    DECLARE total_amount DECIMAL;
     BEGIN
     SELECT amount INTO total_amount FROM app_accounts
     WHERE app_accounts.user_id = sender_id;
@@ -204,7 +202,7 @@ $$
     SELECT (total_amount - (SELECT to_pay_for_user(sender_id)))
     INTO total_amount;
 
-    CALL populate_account_for_user(
+    CALL update_account_amount_for_user(
         sender_id, total_amount
     );
 
@@ -214,7 +212,7 @@ $$
     END;
 $$ SECURITY DEFINER;
 
-CREATE OR REPLACE PROCEDURE clear(sender_id int)
+CREATE OR REPLACE PROCEDURE clear(sender_id INT)
 LANGUAGE PLPGSQL
 AS
 $$
@@ -226,7 +224,7 @@ $$
 $$;
 
 CREATE OR REPLACE PROCEDURE reserve_unit_for_user(
-    sender_id int, unit_to_reserve_id int, quantity int
+    sender_id INT, unit_to_reserve_id INT, quantity INT
 )
 LANGUAGE PLPGSQL
 AS
@@ -235,13 +233,13 @@ $$
     INSERT INTO reserved_units (user_id, unit_id, amount)
     VALUES (sender_id, unit_to_reserve_id, quantity);
     CALL refresh_all_reserved_units_with_user_id();
-    RAISE NOTICE 'Unit reserved!';
+    -- RAISE NOTICE 'Unit reserved!';
     COMMIT;
     END;
 $$;
 
 CREATE OR REPLACE PROCEDURE update_unit_for_user(
-    sender_id int, unit_to_reserve_id int, quantity int
+    sender_id INT, unit_to_reserve_id INT, quantity INT
 )
 LANGUAGE PLPGSQL
 AS
@@ -249,13 +247,13 @@ $$
     BEGIN
     UPDATE reserved_units SET amount = quantity
     WHERE user_id = sender_id AND unit_id = unit_to_reserve_id;
-    RAISE NOTICE 'Unit reserved!';
+    -- RAISE NOTICE 'Unit updated!';
     COMMIT;
     END;
 $$;
 
 CREATE OR REPLACE PROCEDURE delete_unit_for_user(
-    sender_id int, unit_to_delete_id int
+    sender_id INT, unit_to_delete_id INT
 )
 LANGUAGE PLPGSQL
 AS
@@ -263,7 +261,7 @@ $$
     BEGIN
     DELETE FROM reserved_units
     WHERE user_id = sender_id AND unit_id = unit_to_delete_id;
-    RAISE NOTICE 'Unit deleted!';
+    -- RAISE NOTICE 'Unit deleted!';
     COMMIT;
     END;
 $$;
@@ -307,8 +305,8 @@ $$
     END;
 $$;
 
-CREATE OR REPLACE PROCEDURE populate_account_for_user(
-    sender_id int, quantity decimal
+CREATE OR REPLACE PROCEDURE update_account_amount_for_user(
+    sender_id INT, quantity DECIMAL
 )
 LANGUAGE PLPGSQL
 AS
@@ -316,7 +314,7 @@ $$
     BEGIN
     UPDATE app_accounts SET amount = quantity
     WHERE user_id = sender_id;
-    RAISE NOTICE 'Account populated!';
+    RAISE NOTICE 'Account amount updated!';
     END;
 $$;
 
@@ -337,8 +335,8 @@ SELECT units.unit_id, shops.name AS shop_name, units.name, units.weight, units.p
 INNER JOIN shops ON shops.shop_id = units.shop_id
 ORDER BY units.unit_id;
 
-CREATE VIEW all_units AS SELECT shop_name, name, weight,
-price, price_for_kg, amount
+CREATE VIEW all_units AS
+SELECT shop_name, name, weight, price, price_for_kg, amount
 FROM all_units_with_unit_id;
 
 CREATE MATERIALIZED VIEW all_reserved_units_with_user_id AS
@@ -351,7 +349,6 @@ ORDER BY reserved_units.reserved_unit_id;
 CREATE VIEW all_reserved_units AS
 SELECT username, shop_name, unit_id, name, weight, price, price_for_kg, amount, total
 FROM all_reserved_units_with_user_id;
-
 
 CREATE VIEW all_reserved_units_for_customer AS
 SELECT username, shop_name, unit_id, name, weight, price, price_for_kg, amount, total

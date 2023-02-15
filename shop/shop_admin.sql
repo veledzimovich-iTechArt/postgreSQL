@@ -94,12 +94,11 @@ SELECT
     round(
         available.available_amount/total_amount::numeric, 1
     ) AS percent
-FROM
-    (
-        SELECT name, sum(amount) AS available_amount
-        FROM units
-        GROUP BY name
-    ) AS available
+FROM (
+    SELECT name, sum(amount) AS available_amount
+    FROM units
+    GROUP BY name
+) AS available
 JOIN (
     SELECT units.name, sum(reserved_units.amount) AS reserved_amount
     FROM reserved_units

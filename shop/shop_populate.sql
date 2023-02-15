@@ -8,6 +8,9 @@ CALL create_admin_user('manager', 'manager@mail.com');
 CALL create_customer_user('atkins', 'atkins@mail.com');
 CALL create_customer_user('whoami', 'whoami@mail.com');
 
+CALL update_account_amount_for_user(1, 10);
+CALL update_account_amount_for_user(2, 10);
+CALL update_account_amount_for_user(3, 10);
 
 INSERT INTO shops(name)
 VALUES ('Lidl'), ('Carefour'), ('Zabka');
@@ -19,26 +22,24 @@ VALUES
     (2, 'Eggs', 0.7, 3, 2.5),
     (3, 'Tea', 0.1, 3, 4);
 
-CALL populate_account_for_user(1, 10);
-CALL populate_account_for_user(2, 10);
-CALL populate_account_for_user(3, 10);
 
-
-
-WITH median(diff) AS (
-    SELECT percentile_cont(.5) WITHIN GROUP (ORDER BY price)
+WITH units_stat(average, median) AS (
+    SELECT
+        avg(price),
+        percentile_cont(.5) WITHIN GROUP (ORDER BY price)
     FROM units
 )
 
 SELECT
     name,
     price,
-    price - diff AS diff
+    st.average,
+    price - st.average AS avg_diff,
+    st.median,
+    price - st.median AS median_diff
 FROM units,
-    LATERAL (
-        SELECT diff FROM median
-    ) AS d
-WHERE (price - diff) BETWEEN -1 AND 1;
+    LATERAL (SELECT average, median FROM units_stat) AS st
+WHERE (price - st.median) BETWEEN -1 AND 1;
 
 
 SELECT * FROM crosstab (
