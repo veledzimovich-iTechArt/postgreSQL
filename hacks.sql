@@ -11,23 +11,44 @@ EXPLAIN ANALYZE SELECT * FROM generate_series(2,4);
 SELECT * FROM generate_series(2,4);
 
 -- random
-SELECT random()*(10-1)+1;
-SELECT floor(random()*(10-1+1))+1;
+SELECT random()*(10-1)+1 AS random;
+SELECT floor(random()*(10-1+1))+1 AS floor_random;
+
+-- to table
+WITH word_list(word) AS
+(
+    SELECT REGEXP_SPLIT_TO_TABLE(
+        'Feynman: "What I cannot create, I do not understand."', '\s'
+    )
+)
+
+SELECT
+    LOWER(REGEXP_REPLACE(word, '[,.:"]+', '')) AS cleaned,
+    count(*)
+FROM word_list
+WHERE LENGTH(word) >= 1
+GROUP BY cleaned
+ORDER BY count DESC;
 
 -- variables
-DO $$
+DO
+$$
 DECLARE tmpvar VARCHAR(32) := 'temp variable';
 BEGIN
 RAISE NOTICE '%', tmpvar;
-END $$;
+END
+$$;
 
-DO $$
+-- sleep
+DO
+$$
 DECLARE create_time TIME := NOW();
 BEGIN
 RAISE NOTICE '%', create_time;
 PERFORM pg_sleep(1);
 RAISE NOTICE '%', create_time;
-END $$;
+END
+$$;
 
 -- while
 CREATE OR REPLACE PROCEDURE dowhile()
@@ -35,10 +56,10 @@ LANGUAGE PLPGSQL AS
 $$
 DECLARE counter INT := 4;
 BEGIN
-WHILE counter > 0 LOOP
-    RAISE NOTICE '%', (SELECT REPEAT('* ', counter));
-    counter = counter - 1;
-END LOOP;
+    WHILE counter > 0 LOOP
+        RAISE NOTICE '%', (SELECT REPEAT('* ', counter));
+        counter = counter - 1;
+    END LOOP;
 COMMIT;
 END;
 $$;
@@ -53,7 +74,9 @@ WITH RECURSIVE cte AS (
 )
 
 SELECT ARRAY_TO_STRING(ARRAY_AGG(n), '&') FROM cte
-WHERE n NOT IN (SELECT DISTINCT cte.n FROM cte
+WHERE n NOT IN (
+    SELECT DISTINCT cte.n FROM cte
     CROSS JOIN cte AS div
-    WHERE cte.n > div.n AND MOD(cte.n, div.n) = 0);
+    WHERE cte.n > div.n AND MOD(cte.n, div.n) = 0
+);
 

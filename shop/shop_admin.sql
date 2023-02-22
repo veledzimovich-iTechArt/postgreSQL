@@ -2,6 +2,17 @@
 
 -- ADMIN
 
+SELECT pg_size_pretty(
+    pg_database_size(current_database())
+);
+SELECT pg_size_pretty(
+    pg_total_relation_size('reserved_units')
+) AS size_reserved_units;
+SELECT pg_size_pretty(
+    pg_total_relation_size('units')
+) AS size_units;
+
+
 TABLE all_shops;
 TABLE all_units;
 TABLE all_reserved_units;
@@ -111,5 +122,53 @@ JOIN LATERAL (
     AS total_amount
 ) AS ta
 ON true
-
 ORDER BY percent DESC;
+
+-- check size
+SELECT pg_size_pretty(
+    pg_database_size(current_database())
+);
+
+SELECT relname,
+    n_live_tup,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    vacuum_count,
+    autovacuum_count
+FROM pg_stat_all_tables
+WHERE relname = 'reserved_units';
+
+SELECT relname,
+    n_live_tup,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    vacuum_count,
+    autovacuum_count
+FROM pg_stat_all_tables
+WHERE relname = 'units';
+
+VACUUM VERBOSE reserved_units;
+
+SELECT pg_size_pretty(
+    pg_total_relation_size('reserved_units')
+) AS size_reserved_units;
+
+VACUUM VERBOSE units;
+
+SELECT pg_size_pretty(
+    pg_total_relation_size('units')
+) AS size_units;
+
+SELECT pg_size_pretty(
+    pg_database_size(current_database())
+);
+
+
+VACUUM FULL;
+
+
+SELECT pg_size_pretty(
+    pg_database_size(current_database())
+);

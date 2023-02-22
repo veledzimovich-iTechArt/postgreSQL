@@ -1,5 +1,6 @@
 -- shop
 
+-- it could be created for template1 DB (it will auto add for new DB)
 CREATE EXTENSION citext;
 CREATE EXTENSION tablefunc;
 

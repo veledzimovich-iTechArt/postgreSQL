@@ -177,6 +177,7 @@ psql -U postgres -p 5432 -d basic_sql -f basic/types.sql
 psql -U postgres -p 5432 -d basic_sql -f basic/numeric.sql
 psql -U postgres -p 5432 -d basic_sql -f basic/date_time.sql
 psql -U postgres -p 5432 -d basic_sql -f basic/string.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/json.sql
 ```
 
 ### statistic

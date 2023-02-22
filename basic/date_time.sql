@@ -35,6 +35,8 @@ SELECT to_char(birthday, 'YYYY-MM-DD HH12:MI a.m. TZ') from users;
 -- --------------+------------------------+---------------
 --  00:00:00+02  | 2022-12-13 01:00:00+03 | 1 year 2 mons
 
+SELECT (NOW() + '30 days'::interval) AS thiry_days;
+
 -- All four data types can track the system clock and the nuances of the calendar. For example, date and timestamp with time zone recognize that June has 30 days. If you try to use June 31, PostgreSQL will display an error: date/time field value out of range.
 
 SELECT date_part('epoch', '1970-01-01 00:00:01 UTC'::timestamptz) AS epoch;
@@ -46,7 +48,7 @@ SELECT current_setting('timezone');
 SELECT make_timestamptz(
     2022, 2, 22, 18, 4, 30.3, current_setting('timezone')
 );
-SELECT CAST('2022-01-01' AS timestamp);
+
 
 -- is_dst notes whether the time zone is currently observing daylight saving time
 SELECT * FROM pg_timezone_abbrevs ORDER BY abbrev LIMIT 10;
@@ -61,6 +63,12 @@ LIMIT 10;
 SET TIME ZONE 'Europe/Warsaw';
 
 SELECT NOW();
+
+-- from unix to time
+SELECT to_timestamp(
+    ('1612137592990')::bigint / 1000
+) AT TIME ZONE 'UTC' AS from_unix;
+
 
 -- TIME()
 -- ADDTIME()
