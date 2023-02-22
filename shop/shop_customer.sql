@@ -30,15 +30,29 @@ TABLE all_units;
 TABLE all_reserved_units_for_customer;
 TABLE app_accounts;
 
+-- exception
 CALL reserve_unit_for_user(1,3,1);
-CALL update_unit_for_user(1,2,2);
-CALL delete_unit_for_user(1,1);
-CALL delete_unit_for_user(1,2);
-
-UPDATE reserved_units SET amount = 0;
-DELETE FROM reserved_units;
+CALL update_unit_for_user(1,3,2);
+CALL delete_unit_for_user(1,3);
 
 TABLE reserved_units;
+
+CALL reserve_unit_for_user(3,3,1);
+CALL update_unit_for_user(3,3,2);
+
+-- exception
+UPDATE reserved_units SET amount = 0;
+-- allows to update only for logged user
+UPDATE reserved_units SET amount = 1;
+TABLE reserved_units;
+
+-- alows to delete only for logged user
+DELETE FROM reserved_units;
+TABLE reserved_units;
+
+SELECT count(*) FROM reserved_units;
+
+-- To check run query TABLE reserved_units; with postgres user;
 
 DO
 $$

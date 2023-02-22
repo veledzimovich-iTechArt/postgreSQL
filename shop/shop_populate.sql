@@ -15,12 +15,12 @@ CALL update_account_amount_for_user(3, 10);
 INSERT INTO shops(name)
 VALUES ('Lidl'), ('Carefour'), ('Zabka');
 
-INSERT INTO units (shop_id, name, weight, amount, price)
+INSERT INTO units (shop_id, name, weight, amount, price, created_at)
 VALUES
-    (1, 'Rice', 1.0, 2, 1.5),
-    (1, 'Beef', 1.0, 2, 3),
-    (2, 'Eggs', 0.7, 3, 2.5),
-    (3, 'Tea', 0.1, 3, 4);
+    (1, 'Rice', 1.0, 2, 1.5, NOW()::timestamptz),
+    (1, 'Beef', 1.0, 2, 3, NOW()::timestamptz),
+    (2, 'Eggs', 0.7, 3, 2.5, NOW()::timestamptz),
+    (3, 'Tea', 0.1, 3, 4, NOW()::timestamptz);
 
 
 WITH units_stat(average, median) AS (

@@ -1,7 +1,6 @@
 -- shop
 
--- INIT
-
+CREATE EXTENSION citext;
 CREATE EXTENSION tablefunc;
 
 CREATE DOMAIN phone_number_domain AS VARCHAR(15) CHECK(
@@ -16,7 +15,7 @@ CREATE DOMAIN email_domain AS CITEXT CHECK(
 -- TABLES
 
 CREATE TABLE users(
-    user_id SERIAL NOT NULL PRIMARY KEY,
+    user_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     username VARCHAR(64) NOT NULL UNIQUE,
     first_name VARCHAR(64) UNIQUE,
     last_name VARCHAR(64) UNIQUE,
@@ -30,12 +29,12 @@ CREATE TABLE app_accounts(
 );
 
 CREATE TABLE shops(
-    shop_id SERIAL NOT NULL PRIMARY KEY,
+    shop_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name CITEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE units(
-    unit_id SERIAL NOT NULL PRIMARY KEY,
+    unit_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     shop_id INT NOT NULL,
     name CITEXT NOT NULL,
     weight DECIMAL(12, 2) DEFAULT 1 CHECK(weight > 0),
@@ -43,11 +42,12 @@ CREATE TABLE units(
     price_for_kg DECIMAL(12, 2) GENERATED ALWAYS AS ((1 / weight) * price) STORED,
     amount INT DEFAULT 1 CHECK(amount >= 0),
     FOREIGN KEY(shop_id) REFERENCES shops(shop_id),
-    UNIQUE (shop_id, name, weight)
+    UNIQUE (shop_id, name, weight),
+    created_at timestamptz NOT NULL
 );
 
 CREATE TABLE reserved_units(
-    reserved_unit_id SERIAL NOT NULL PRIMARY KEY,
+    reserved_unit_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id INT NOT NULL,
     unit_id INT NOT NULL,
     amount INT DEFAULT 1 CHECK(amount > 0),
@@ -60,15 +60,16 @@ CREATE TABLE reserved_units(
 -- FUNCTIONS
 
 CREATE OR REPLACE FUNCTION create_user_app_account()
-RETURNS trigger AS
+RETURNS trigger
+LANGUAGE PLPGSQL
+AS
 $$
     BEGIN
     INSERT INTO app_accounts VALUES (NEW.user_id);
     RAISE NOTICE 'App account created!';
     RETURN NULL;
     END;
-$$
-LANGUAGE PLPGSQL;
+$$;
 
 CREATE OR REPLACE FUNCTION subtract_unit_amount()
 RETURNS trigger
@@ -217,11 +218,18 @@ LANGUAGE PLPGSQL
 AS
 $$
     BEGIN
-    DELETE FROM reserved_units WHERE user_id = sender_id;
+
+    UPDATE units SET amount = units.amount + reserved.amount
+    FROM (
+        SELECT unit_id, amount FROM reserved_units
+        WHERE user_id = sender_id
+    ) AS reserved
+    WHERE units.unit_id = reserved.unit_id;
+
+    CALL delete_without_trigger(sender_id);
     RAISE NOTICE 'Reserved units cleared!';
-    COMMIT;
     END;
-$$;
+$$ SECURITY DEFINER;
 
 CREATE OR REPLACE PROCEDURE reserve_unit_for_user(
     sender_id INT, unit_to_reserve_id INT, quantity INT
@@ -247,7 +255,7 @@ $$
     BEGIN
     UPDATE reserved_units SET amount = quantity
     WHERE user_id = sender_id AND unit_id = unit_to_reserve_id;
-    -- RAISE NOTICE 'Unit updated!';
+    RAISE NOTICE 'Unit updated!';
     COMMIT;
     END;
 $$;
@@ -259,9 +267,10 @@ LANGUAGE PLPGSQL
 AS
 $$
     BEGIN
+
     DELETE FROM reserved_units
     WHERE user_id = sender_id AND unit_id = unit_to_delete_id;
-    -- RAISE NOTICE 'Unit deleted!';
+    RAISE NOTICE 'Unit deleted!';
     COMMIT;
     END;
 $$;
