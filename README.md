@@ -14,6 +14,14 @@
 
 - [export import](#export-import)
 
+[example](#example)
+
+- [create table](#create-table)
+
+- [aggregate](#aggregate)
+
+- [normalization](#normalization)
+
 [hacks](#hacks)
 
 [shop](#shop)
@@ -122,8 +130,9 @@ settings
 ```bash
 psql
 SHOW ALL;
-\set AUTOCOMMIT off
 \echo :AUTOCOMMIT
+# \set AUTOCOMMIT on (default, can't rollback)
+\set AUTOCOMMIT off
 # set null for NULL
 \pset null '[null]'
 # default for NULL
@@ -197,6 +206,8 @@ SELECT pg_database_size(current_database()),
     pg_relation_size('temp_table');
 
 SELECT pg_size_pretty(pg_database_size(current_database()));
+VACUUM FULL;
+SELECT pg_size_pretty(pg_database_size(current_database()));
 
 -- user info about connections
 SELECT datid, datname, usename, state FROM pg_stat_activity;
@@ -208,7 +219,7 @@ SELECT CURRENT_USER, CURRENT_DATE, CURRENT_TIME;
 ```bash
 psql
 SHOW config_file;
-# autovacuum
+# autovacuum = on
 # datestyle = 'iso, mdy'
 # timezone = 'Europe/Warsaw'
 # default_text_search_config
@@ -227,18 +238,23 @@ SELECT NOW();
 ### dump load
 ```bash
 pg_dump --host 127.0.0.1 --port 5432 --user postgres basic_sql > basic_sql.dump
+
 #  -v verbose -Fc comressed format
 pg_dump -Fc -v --host 127.0.0.1 --port 5432 --user postgres -d basic_sql -f basic_sql.dump
+
 # -t table
 pg_dump -Fc -v --host 127.0.0.1 --port 5432 --user postgres -d basic_sql -t 'users' -f basic_sql_users.dump
+
 # restore
 # get DB name from basic_sql.dump
 dropdb basic_sql
 pg_restore -C -v -d postgres -U postgres basic_sql.dump
 psql -h 127.0.0.1 -d basic_sql -U postgres -f basic_sql.dump
+
  # copy to docker with your container_ID
 docker cp basic_sql.sql [container ID]:/basic_sql.dump
 docker exec -it [container_ID] psql -h 127.0.0.1 -d basic_sql -U postgres -f basic_sql.dump
+
 # back up multiple databases
 pg_basebackup --help
 ```
@@ -249,8 +265,108 @@ pg_basebackup --help
 psql -d basic_sql -U postgres
 \copy users TO '/Users/aliaksandr/Documents/DB/sql/postgres/basic/basic_sql_users.csv' WITH (FORMAT CSV, HEADER);
 DELETE FROM users;
+
 # import with STDIN
 psql -d basic_sql -U postgres -c 'COPY users FROM STDIN WITH (FORMAT CSV, HEADER);' < '/Users/aliaksandr/Documents/DB/sql/postgres/basic/basic_sql_users.csv'
+```
+
+## example
+
+### create table
+
+- Select Object (describe one thing)
+
+- List info about object (easy query)
+
+- Break down info into pieces (atomic data)
+
+```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
+```
+
+```bash
+# return CREATE TABLE public.my_contacts query
+pg_dump -U postgres -d basic_sql -t my_contacts --schema-only
+psql -d basic_sql
+\d+ my_contacts
+\q
+```
+
+### aggregate
+
+```bash
+psql -U postgres -p 5432 -d basic_sql -f basic/aggregate.sql
+```
+
+### normalization
+
+```sql
+-- no duplicates
+-- faster query
+-- prevent long query
+SELECT * FROM my_contacts
+WHERE gender = 'F'
+    AND status = 'SINGLE'
+    AND country = 'USA'
+    AND birthday > '1991-01-02'
+    AND SUBSTRING(
+        interests, 0, POSITION(',' IN interests)
+    ) = 'Astronomy';
+```
+#### 1NF
+    - atomic data - no diff values of same type in one column
+    - no columns with same data type
+
+#### 2NF
+    - 1NF
+    - artificial primary key for each entry
+    - OR
+    - all columns is a primary key
+    - OR
+    - combined primary key
+        - data depends from the all parts of combined primary key
+            - no partial functional dependency
+
+#### 3NF
+    - 2NF
+    - all fields must depend only from primary key
+        - no transitive functional dependency among non-key columns
+
+#### 4NF ... 6NF
+
+### cosntraints
+
+- PRIMARY KEY - one or more columns used as uniq id for each row in table
+- FOREIGN KEY - one or more columns used as REFERENCE for row in other table
+- RecursiveForeignKey (RFK) / (Self-Referehcing) - the primary key of that table used in that same table for another purposes
+- DEFAULT
+- NOT NULL
+- CHECK
+- UNIQUE
+- CASCADE ON DELETE ON UPDATE
+
+### relations
+- one-to-one A - B (salary - person)
+    - one entry from table A referred to one entry from table B
+        - faster queries
+        - put null data from main table to separate tables
+        - safe/hide data (about salary)
+        - put BLOB data in separate table
+- one-to-many A -> B (profession -> person)
+    - one entry from table A referred to many entries from table B
+- many-to-many A <-> B (person <-> interests)
+    - many-to-many need third table
+
+```bash
+psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
+```
+
+### join
+
+```bash
+psql -U postgres -p 5432 -d basic_sql -f basic/join.sql
 ```
 
 ## hacks

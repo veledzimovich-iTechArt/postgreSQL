@@ -7,6 +7,21 @@
 EXPLAIN SELECT VERSION();
 EXPLAIN ANALYZE SELECT * FROM generate_series(2,4);
 
+-- vacuum
+SELECT relname,
+    n_live_tup,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    vacuum_count,
+    autovacuum_count
+FROM pg_stat_user_tables;
+
+VACUUM VERBOSE;
+SELECT pg_size_pretty(pg_database_size(current_database()));
+VACUUM FULL;
+SELECT pg_size_pretty(pg_database_size(current_database()));
+
 -- range
 SELECT * FROM generate_series(2,4);
 

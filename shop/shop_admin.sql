@@ -52,6 +52,7 @@ DECLARE
     admin_account_amount decimal;
     atkins_account_amount decimal;
     whoami_account_amount decimal;
+    all_total_reserved_amount int;
 BEGIN
     SELECT amount INTO rice_amount FROM units WHERE unit_id = 1;
     SELECT amount INTO beef_amount FROM units WHERE unit_id = 2;
@@ -87,6 +88,10 @@ BEGIN
     ASSERT admin_account_amount = 10.00, 'Wrong admin account amount';
     ASSERT atkins_account_amount = 10.00, 'Wrong atkins account amount';
     ASSERT whoami_account_amount = 6.00, 'Wrong whoami account amount';
+
+    SELECT count(*) INTO all_total_reserved_amount
+    FROM all_reserved_units;
+    ASSERT total_reserved_amount = all_total_reserved_amount, 'Wrong reserved view amount';
 END
 $$;
 
@@ -166,8 +171,14 @@ SELECT pg_size_pretty(
 );
 
 
-VACUUM FULL;
+VACUUM FULL units;
 
+
+SELECT pg_size_pretty(
+    pg_database_size(current_database())
+);
+
+VACUUM FULL;
 
 SELECT pg_size_pretty(
     pg_database_size(current_database())
