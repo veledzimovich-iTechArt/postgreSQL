@@ -336,9 +336,17 @@ SELECT users.user_id, users.username, users.email, app_accounts.amount FROM user
 NATURAL JOIN app_accounts
 ORDER BY users.user_id;
 
-CREATE VIEW all_shops AS
+CREATE VIEW all_shops
+WITH (security_barrier) AS
 SELECT name FROM shops
-ORDER BY shops.shop_id;
+-- The view itself will restrict updates rows matching the condition in the WHERE clause.
+WHERE name = (
+    SELECT name FROM shops AS old_shops
+    WHERE shops.name = old_shops.name
+)
+-- The LOCAL CHECK OPTION also prevents a user from changing name.
+ORDER BY shops.shop_id
+WITH LOCAL CHECK OPTION;
 
 CREATE VIEW all_units_with_unit_id AS
 SELECT units.unit_id, shops.name AS shop_name, units.name, units.weight, units.price, units.price_for_kg, units.amount FROM units
@@ -360,9 +368,11 @@ CREATE VIEW all_reserved_units AS
 SELECT username, shop_name, unit_id, name, weight, price, price_for_kg, amount, total
 FROM all_reserved_units_with_user_id;
 
-CREATE VIEW all_reserved_units_for_customer AS
+CREATE VIEW all_reserved_units_for_customer
+WITH (security_barrier) AS
 SELECT username, shop_name, unit_id, name, weight, price, price_for_kg, amount, total
 FROM all_reserved_units_with_user_id
+
 WHERE current_user = (
     SELECT username
     FROM users

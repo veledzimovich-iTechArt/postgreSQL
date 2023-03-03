@@ -9,27 +9,32 @@ WHERE country = 'USA';
 SELECT country, SUM(salary) FROM my_contacts
 GROUP BY country
 ORDER BY SUM(salary) DESC;
+
 -- AVG
 SELECT country, AVG(salary) FROM my_contacts
 GROUP BY country
 ORDER BY AVG(salary) DESC;
+
 -- MIN MAX
-SELECT country, MIN(salary) FROM my_contacts
+SELECT country, MIN(salary), MAX(salary) FROM my_contacts
 GROUP BY country;
-SELECT country, MAX(salary) FROM my_contacts
-GROUP BY country;
+
 -- COUNT
 SELECT COUNT(country) FROM my_contacts;
+
 SELECT country, COUNT(country) FROM my_contacts
 GROUP BY country;
+
 -- COUNT DISTINCT
 SELECT COUNT(DISTINCT country) FROM my_contacts;
+
 -- LIMIT
 SELECT country, SUM(salary) FROM my_contacts
 GROUP BY country
 ORDER BY SUM(salary) DESC
 LIMIT 2;
 
+--OFFSET
 SELECT country, SUM(salary) FROM my_contacts
 GROUP BY country
 ORDER BY SUM(salary) DESC

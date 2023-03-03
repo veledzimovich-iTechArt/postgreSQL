@@ -14,6 +14,10 @@ SELECT pg_size_pretty(
 
 
 TABLE all_shops;
+
+-- security barier in shop
+UPDATE all_shops SET name = 'Lidl2022' WHERE name = 'Lidl';
+
 TABLE all_units;
 TABLE all_reserved_units;
 TABLE all_users;
