@@ -65,6 +65,7 @@ RAISE NOTICE '%', create_time;
 END
 $$;
 
+
 -- while
 CREATE OR REPLACE PROCEDURE dowhile()
 LANGUAGE PLPGSQL AS
@@ -81,17 +82,27 @@ $$;
 
 CALL dowhile();
 
+-- CTE as for loop
+WITH RECURSIVE t(n) AS
+(
+    SELECT 1
+    UNION ALL
+    SELECT N + 1 FROM t
+)
+SELECT n FROM t LIMIT 10;
+
 -- prime numbers
-WITH RECURSIVE cte AS (
+WITH RECURSIVE prime_cte AS (
     SELECT 2 AS n
     UNION ALL
-    SELECT n + 1 FROM cte WHERE n < 32
+    SELECT n + 1 FROM prime_cte WHERE n < 32
 )
 
-SELECT ARRAY_TO_STRING(ARRAY_AGG(n), '&') FROM cte
+SELECT ARRAY_TO_STRING(ARRAY_AGG(n), '&') FROM prime_cte
 WHERE n NOT IN (
-    SELECT DISTINCT cte.n FROM cte
-    CROSS JOIN cte AS div
-    WHERE cte.n > div.n AND MOD(cte.n, div.n) = 0
+    SELECT DISTINCT prime_cte.n FROM prime_cte
+    CROSS JOIN prime_cte AS div
+    WHERE prime_cte.n > div.n AND MOD(prime_cte.n, div.n) = 0
 );
+
 

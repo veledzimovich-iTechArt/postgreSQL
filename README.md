@@ -22,6 +22,12 @@
 
 - [normalization](#normalization)
 
+- [join](#join)
+
+- [transactions](#transactions)
+
+- [roles](#roles)
+
 [hacks](#hacks)
 
 [shop](#shop)
@@ -360,13 +366,39 @@ WHERE gender = 'F'
     - many-to-many need third table
 
 ```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
 psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
 ```
 
 ### join
 
 ```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
 psql -U postgres -p 5432 -d basic_sql -f basic/join.sql
+```
+
+### transactions
+
+Transaction group of command executed together. If one command will be failed all commands will be canceled.
+
+```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/transactions.sql
+```
+
+### roles
+```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/roles.sql
 ```
 
 ## hacks

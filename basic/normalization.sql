@@ -483,13 +483,6 @@ WHERE (gender IN ('M', 'F') OR gender IS NULL) WITH CHECK OPTION;
 
 DROP VIEW my_contacts_with_check_gender;
 
-
--- Window function
-SELECT *, ROW_NUMBER() OVER (PARTITION BY available ORDER BY contact_id) AS rn
-FROM job_desired
-ORDER BY rn;
-
-
 -- Temporary tables
 CREATE TEMPORARY TABLE tmp_table(
     contact_id INT
@@ -588,5 +581,3 @@ INSERT INTO my_contacts VALUES(
 );
 
 TABLE my_contacts;
-
-

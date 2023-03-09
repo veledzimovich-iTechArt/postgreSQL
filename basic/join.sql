@@ -4,12 +4,12 @@
 
 -- CROSS JOIN (Decart join)
 SELECT i.interest, c.last_name
-FROM interests as i CROSS JOIN my_contacts AS c;
+FROM interests CROSS JOIN my_contacts;
 
 SELECT interests.interest, my_contacts.last_name
 FROM interests, my_contacts;
 
-SELECT * FROM my_contacts CROSS JOIN interests;
+SELECT * FROM contact_seeking CROSS JOIN seekings;
 
 SELECT * FROM contact_seeking, seekings;
 
@@ -65,8 +65,6 @@ FROM my_contacts AS c NATURAL JOIN contact_interest AS ci;
 -- but could be useless
 SELECT s.status, p.profession
 FROM statuses AS s NATURAL JOIN professions AS p;
-
-
 
 
 -- OUTER AND INNER SUBQUERY
@@ -257,18 +255,13 @@ SELECT mc1.last_name,
 FROM my_contacts AS mc1;
 
 -- UNION uniq
--- ERROR
--- SELECT * FROM job_current
--- UNION
--- SELECT * FROM job_desired
--- UNION
--- SELECT * FROM job_listings ORDER BY title;
--- ERROR
--- SELECT * FROM job_current ORDER BY title
--- UNION
--- SELECT * FROM job_desired ORDER BY title
--- UNION
--- SELECT * FROM job_listings ORDER BY title;
+
+SELECT * FROM job_current
+UNION
+SELECT * FROM job_desired
+UNION
+SELECT * FROM job_listings ORDER BY title;
+-- ERROR:  each UNION query must have the same number of columns
 
 SELECT title FROM job_current
 UNION
@@ -283,7 +276,7 @@ SELECT title FROM job_desired
 UNION ALL
 SELECT title FROM job_listings ORDER BY title;
 
-
+DROP TABLE IF EXISTS my_union;
 CREATE TABLE my_union AS
 SELECT contact_id FROM job_current
 UNION

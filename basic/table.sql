@@ -149,7 +149,6 @@ ADD COLUMN city VARCHAR(20);
 ALTER TABLE my_contacts
 ADD COLUMN state VARCHAR(20);
 
-
 -- RENAME
 ALTER TABLE my_contacts RENAME TO old;
 CREATE TABLE my_contacts (
@@ -174,6 +173,9 @@ CREATE TABLE my_contacts (
 INSERT INTO my_contacts (contact_id, last_name, first_name, birthday, profession, email, mobile_phone, city, state, country, gender, status, interests, seeking)
 SELECT contact_id, last_name, first_name, birthday, profession, email, mobile_phone, city, state, country, gender, status, interests, seeking FROM old;
 DROP TABLE old;
+
+ALTER TABLE my_contacts
+ADD COLUMN salary INT DEFAULT 1000;
 
 -- RENAME COLUMN
 ALTER TABLE my_contacts
