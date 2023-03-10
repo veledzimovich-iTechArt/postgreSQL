@@ -7,6 +7,16 @@ SELECT
     'NULL special SQL value for missing unknown data' AS null,
     NULL AS null;
 
+-- NULL
+-- IS NULL
+SELECT (NULL IS NULL) AS is_null;
+SELECT (NULL IS NOT NULL) AS is_not_null;
+-- BOOL t f
+-- TRUE AND NULL
+SELECT (TRUE AND NULL) AS empty;
+SELECT (FALSE AND NULL);
+SELECT (NOT NULL) AS empty;
+
 SELECT true AS boolean,
     'true'::boolean AS boolean,
     'yes'::boolean AS boolean,

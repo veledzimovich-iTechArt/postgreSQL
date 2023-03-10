@@ -18,15 +18,15 @@
 
 - [create table](#create-table)
 
-- [aggregate](#aggregate)
-
 - [normalization](#normalization)
+
+- [roles](#roles)
+
+- [select](#select)
 
 - [join](#join)
 
 - [transactions](#transactions)
-
-- [roles](#roles)
 
 [hacks](#hacks)
 
@@ -300,12 +300,6 @@ psql -d basic_sql
 \q
 ```
 
-### aggregate
-
-```bash
-psql -U postgres -p 5432 -d basic_sql -f basic/aggregate.sql
-```
-
 ### normalization
 
 ```sql
@@ -372,6 +366,25 @@ psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
 psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
 ```
 
+### roles
+```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/roles.sql
+```
+
+### select
+
+```bash
+dropdb basic_sql
+createdb -U postgres basic_sql
+psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
+psql -U postgres -p 5432 -d basic_sql -f basic/select.sql
+```
+
 ### join
 
 ```bash
@@ -390,15 +403,6 @@ Transaction group of command executed together. If one command will be failed al
 dropdb basic_sql
 createdb -U postgres basic_sql
 psql -U postgres -p 5432 -d basic_sql -f basic/transactions.sql
-```
-
-### roles
-```bash
-dropdb basic_sql
-createdb -U postgres basic_sql
-psql -U postgres -p 5432 -d basic_sql -f basic/table.sql
-psql -U postgres -p 5432 -d basic_sql -f basic/normalization.sql
-psql -U postgres -p 5432 -d basic_sql -f basic/roles.sql
 ```
 
 ## hacks
