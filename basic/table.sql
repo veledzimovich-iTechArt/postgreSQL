@@ -175,7 +175,16 @@ SELECT contact_id, last_name, first_name, birthday, profession, email, mobile_ph
 DROP TABLE old;
 
 ALTER TABLE my_contacts
-ADD COLUMN salary INT DEFAULT 1000;
+ADD COLUMN salary DECIMAL(10, 2);
+UPDATE my_contacts
+SET salary =
+    CASE
+        WHEN contact_id = 1 THEN 1000
+        WHEN contact_id = 2 THEN 900
+        WHEN contact_id = 3 THEN 1200
+        WHEN contact_id = 4 THEN 1700
+        WHEN contact_id = 5 THEN 1900
+    END;
 
 -- RENAME COLUMN
 ALTER TABLE my_contacts
