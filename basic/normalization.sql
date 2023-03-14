@@ -376,7 +376,7 @@ UPDATE job_desired
 SET
     title = 'java developer',
     years_exp = 4,
-    salary_high = 2200,
+    salary_high = 2000,
     available = 'n'
 WHERE contact_id = 4;
 

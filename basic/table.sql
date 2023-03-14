@@ -39,97 +39,6 @@ INSERT INTO my_contacts
 VALUES ('Richard', E'O\'Keefe', 'keefe@gmail.com', 'M', '1960-05-01', 'Scientiest', 'Ireland', 'Single', 'Computers', 'Haskell'
 );
 
-
--- SELECT
-TABLE my_contacts;
-
-SELECT * FROM my_contacts WHERE first_name = E'O\'Keefe';
--- or two apostrophes
-SELECT * FROM my_contacts WHERE first_name = 'O''Keefe';
-
-SELECT email FROM my_contacts
-WHERE profession = 'Developer';
-
--- AND
-SELECT last_name, first_name, email FROM my_contacts
-WHERE gender = 'M' AND interests = 'Computers';
-
--- = <> < > <= >=
-SELECT last_name, first_name, email FROM my_contacts
-WHERE gender='M' AND birthday >= '1983-07-19';
-
-SELECT last_name, first_name, email FROM my_contacts
-WHERE gender <> 'M';
-
--- lexical order based on first chars
-SELECT last_name, first_name FROM my_contacts
-WHERE first_name > 'A' AND first_name < 'W';
-
--- OR
-SELECT last_name, first_name FROM my_contacts
-WHERE gender = 'M' OR gender = 'F';
-
--- NULL is special
--- NULL is NULL but value NULL != NULL
-SELECT location FROM my_contacts
-WHERE first_name = 'Nobody' AND gender = 'M';
--- get NULL
-SELECT location FROM my_contacts
-WHERE first_name = 'Nobody' OR status = 'Single';
-
-SELECT gender FROM my_contacts
-WHERE first_name = 'Me';
-
--- IS NULL
-SELECT last_name, first_name, gender FROM my_contacts
-WHERE gender IS NULL;
-
--- LIKE %
-SELECT * FROM my_contacts
-WHERE location LIKE '%CA';
--- LIKE _
-SELECT * FROM my_contacts
-WHERE first_name LIKE '__i';
-
--- BETWEEN <= >=
-SELECT * FROM my_contacts
-WHERE birthday BETWEEN '1990-01-01' AND '1991-01-01';
-
-SELECT * FROM my_contacts
-WHERE birthday < '1983-07-19' OR birthday > '1990-01-01';
-
-SELECT * FROM my_contacts
-WHERE first_name BETWEEN 'A' AND 'W';
-
--- IN
-SELECT * FROM my_contacts
-WHERE seeking IN ('Haskell', 'Board games');
-
--- NOT
-SELECT * FROM my_contacts
-WHERE seeking NOT IN ('Haskell', 'Board games');
-SELECT * FROM my_contacts
-WHERE NOT seeking IN ('Haskell', 'Board games');
-
-SELECT * FROM my_contacts
-WHERE NOT birthday BETWEEN '1990-01-01' AND '1991-01-01';
-
-SELECT last_name FROM my_contacts
-WHERE NOT last_name LIKE 'A%' AND NOT last_name LIKE 'W%';
-
-SELECT * FROM my_contacts
-WHERE NOT profession = 'Developer' AND NOT location LIKE 'I%';
-
-SELECT profession FROM my_contacts
-WHERE NOT profession <> 'Developer';
--- same
-SELECT profession FROM my_contacts
-WHERE profession = 'Developer';
-
-SELECT * FROM my_contacts
-WHERE profession IS NOT NULL;
-
-
 -- ALTER
 -- ADD COLUMN
 ALTER TABLE my_contacts
@@ -246,7 +155,7 @@ VALUES (DEFAULT, 'Me', 'Me', 'me@gmail.com', 'Married');
 -- UPDATE
 UPDATE my_contacts
 SET
-    email = 'meme@gmail.com',
+    email = 'me_me@gmail.com',
     profession = 'Artist'
 WHERE first_name = 'Me';
 
