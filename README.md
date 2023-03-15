@@ -4,7 +4,7 @@
 
 [basic](#basic)
 
-- [run basic examples](#run-basic-examples)
+- [basic postgres](#basic-postgres)
 
 - [statistic](#statistic)
 
@@ -184,7 +184,7 @@ CREATE EXTENSION citext;
 \q
 ```
 
-### run basic examples
+### basic postgres
 ```bash
 dropdb basic_sql
 createdb -U postgres basic_sql

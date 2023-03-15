@@ -241,12 +241,22 @@ WHERE email LIKE '%gmail.com'
 ORDER BY last_name ASC, birthday DESC, gender;
 
 
+-- HAVING
+SELECT last_name, job_current.title, job_current.salary
+FROM my_contacts
+NATURAL JOIN job_current
+WHERE job_current.title IS NOT NULL
+GROUP BY last_name, job_current.title, job_current.salary
+HAVING job_current.salary > (SELECT AVG(salary) FROM job_current);
+
+
 -- GROUP BY
 SELECT gender FROM my_contacts
 GROUP BY gender;
 
 SELECT gender, COUNT(gender) FROM my_contacts
 GROUP BY gender;
+
 
 -- WITH
 WITH lowest_salary AS (
@@ -260,30 +270,33 @@ FROM my_contacts
 NATURAL JOIN job_current
 WHERE job_current.salary >= (SELECT max_salary FROM lowest_salary);
 
+
 -- Window
--- unsorted
+-- first value
+-- unordered
 SELECT
     *,
     first_value(years_exp) OVER () AS rn
 FROM job_desired
 WHERE title IS NOT NULL
 ORDER BY rn;
-
+-- order by
 SELECT
     *,
     first_value(years_exp) OVER (ORDER BY years_exp) AS lowest_exp
 FROM job_desired
 WHERE title IS NOT NULL
 ORDER BY lowest_exp;
-
-
+-- partition
 SELECT
     *,
-    first_value(years_exp) OVER (PARTITION BY available ORDER BY years_exp) AS lowest_exp
+    first_value(years_exp) OVER (
+        PARTITION BY available ORDER BY years_exp
+    ) AS lowest_exp
 FROM job_desired
 WHERE title IS NOT NULL
 ORDER BY lowest_exp;
-
+-- row number
 SELECT
     title, salary_high, available,
     row_number() OVER (
@@ -291,7 +304,7 @@ SELECT
     ) AS rn
 FROM job_desired
 WHERE title IS NOT NULL;
-
+-- rank
 SELECT
     title, salary_high, available,
     rank() OVER (
@@ -299,7 +312,7 @@ SELECT
     ) AS rn
 FROM job_desired
 WHERE title IS NOT NULL;
-
+-- dense_rank
 SELECT
     title, salary_high, available,
     dense_rank() OVER (
@@ -308,7 +321,6 @@ SELECT
 FROM job_desired
 WHERE title IS NOT NULL;
 
--- cumulative window
 -- simple sum
 SELECT
     start_date,
@@ -339,7 +351,18 @@ SELECT
 FROM job_current
 WHERE start_date IS NOT NULL
 ORDER BY start_date;
-
+-- sliding window with partition
+SELECT
+    get_year,
+    salary,
+    SUM(salary) OVER (
+        PARTITION BY get_year
+        ORDER BY start_date
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS sliding_budjet
+FROM job_current, LATERAL SUBSTRING(start_date::text, 1, 4) AS get_year
+WHERE start_date IS NOT NULL
+ORDER BY start_date;
 
 -- LAG
 SELECT

@@ -317,13 +317,13 @@ WHERE contact_id = 2;
 UPDATE job_current
 SET
     title = 'techical writer',
-    start_date = '2018-03-10'
+    start_date = '2015-03-10'
 WHERE contact_id = 3;
 
 UPDATE job_current
 SET
     title = 'java developer',
-    start_date = '2019-03-11'
+    start_date = '2015-03-11'
 WHERE contact_id = 4;
 
 UPDATE job_current

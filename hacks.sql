@@ -1,5 +1,7 @@
 -- HACKS
 
+CREATE EXTENSION tablefunc;
+
 -- reset autoincrement
 -- ALTER SEQUENCE users_user_id_seq RESTART WITH 1;
 
@@ -22,6 +24,26 @@ SELECT pg_size_pretty(pg_database_size(current_database()));
 VACUUM FULL;
 SELECT pg_size_pretty(pg_database_size(current_database()));
 
+-- unnest
+SELECT unnest(ARRAY[1,2,3,4]) AS unnest_array;
+
+-- crosstab
+SELECT * FROM crosstab (
+'SELECT gender, prof_id, count(prof_id) FROM my_contacts
+WHERE gender IS NOT NULL
+GROUP BY gender, prof_id
+ORDER BY gender',
+'SELECT id FROM professions
+GROUP BY id
+ORDER BY id'
+) AS (
+    gender text,
+    artist int,
+    developer int,
+    scientiest int,
+    writer int
+);
+
 -- range
 SELECT * FROM generate_series(2,4);
 
@@ -36,7 +58,6 @@ WITH word_list(word) AS
         'Feynman: "What I cannot create, I do not understand."', '\s'
     )
 )
-
 SELECT
     LOWER(REGEXP_REPLACE(word, '[,.:"]+', '')) AS cleaned,
     count(*)
@@ -64,7 +85,6 @@ PERFORM pg_sleep(1);
 RAISE NOTICE '%', create_time;
 END
 $$;
-
 
 -- while
 CREATE OR REPLACE PROCEDURE dowhile()
